@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 type Props = {
@@ -15,6 +15,24 @@ export default function Group({ title, onDelete, onEdit }: Props) {
   const handleSave = () => {
     onEdit(newTitle);  // Save the new title
     setIsEditing(false);  // Exit edit mode
+  };
+
+  const confirmDelete = () => {
+    Alert.alert(
+      "Delete Group",  // Title of the alert
+      `Are you sure you want to delete the group "${title}"?`,  // Message in the alert
+      [
+        {
+          text: "Cancel",
+          style: "cancel",  // Simply closes the alert when pressed
+        },
+        {
+          text: "Yes, Delete",
+          onPress: onDelete,  // Calls the onDelete function if the user confirms
+        },
+      ],
+      { cancelable: true }  // Allows the user to dismiss the alert by clicking outside
+    );
   };
 
   return (
@@ -40,8 +58,8 @@ export default function Group({ title, onDelete, onEdit }: Props) {
           <MaterialIcons name="edit" size={25} color="#25292e" />
         </TouchableOpacity>
 
-        {/* Delete button */}
-        <TouchableOpacity onPress={onDelete}>
+        {/* Delete button with confirmation */}
+        <TouchableOpacity onPress={confirmDelete}>
           <MaterialIcons name="delete" size={25} color="#25292e" />
         </TouchableOpacity>
       </View>
