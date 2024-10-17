@@ -10,13 +10,13 @@ export default function Index() {
   const [groupItem, setGroupItem] = useState<string[]>([]);
 
   const handleAddGroup = () => {
- 
     Keyboard.dismiss();
-
+    
     if (group) {
       setGroupItem([...groupItem, group]);
       setGroup(''); // Reset Group to empty string after adding
     }
+    console.log(groupItem);
   };
 
   const handleDeleteGroup = (index: number) => {
@@ -24,6 +24,12 @@ export default function Index() {
     updatedGroups.splice(index, 1); // Remove the group at the specified index
     setGroupItem(updatedGroups); // Update the state with the new array
   };
+
+  const handleUpdateGroup = (index:number,newName:string)=>{
+    const updateGroups=[...groupItem];
+    updateGroups[index]=newName;
+    setGroupItem(updateGroups);    
+  }
 
   return (
     <View style={styles.container} >
@@ -36,7 +42,7 @@ export default function Index() {
         
         {groupItem.map((item, index) => {
           return (
-            <Group key={index} title={item} onDelete={()=>handleDeleteGroup(index)} />
+            <Group key={index} title={item} onDelete={()=>handleDeleteGroup(index)} onEdit={(newName)=> handleUpdateGroup(index,newName)} />
           );
         })}
 
