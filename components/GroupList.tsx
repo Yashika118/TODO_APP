@@ -35,6 +35,7 @@ export default function GroupList(){
 }
 
 const styles = StyleSheet.create({
+    
     recentTaskList: {
       marginBottom: 20,
     },
@@ -59,6 +60,7 @@ const styles = StyleSheet.create({
       fontSize: 12,
       color: 'gray',
     },
+    
     
   });
   

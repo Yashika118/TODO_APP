@@ -9,7 +9,6 @@ export default function Index() {
     <View style={styles.container} >
       <HomePageHeader />
 
-      
       <View>
         <GroupList/>
       </View>
