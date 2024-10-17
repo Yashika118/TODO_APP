@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, FlatList } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 
 type Props={
     title:string;
+    onDelete:()=> void;
 };
 
-export default function Group({ title }: Props) {
+
+
+export default function Group({ title, onDelete }: Props) {
     return(
         <View style={styles.taskCard}>
             <View style={styles.taskCardText}>
@@ -20,7 +23,9 @@ export default function Group({ title }: Props) {
                     <MaterialIcons name="edit" size={25} color="#25292e" />
                 </View>
                 <View>
-                    <MaterialIcons name="delete" size={25} color="#25292e" />
+                    <TouchableOpacity onPress={onDelete}>
+                      <MaterialIcons name="delete" size={25} color="#25292e" />
+                    </TouchableOpacity>
                 </View>
             </View>
 

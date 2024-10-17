@@ -19,6 +19,11 @@ export default function Index() {
     }
   };
 
+  const handleDeleteGroup = (index: number) => {
+    const updatedGroups = [...groupItem];
+    updatedGroups.splice(index, 1); // Remove the group at the specified index
+    setGroupItem(updatedGroups); // Update the state with the new array
+  };
 
   return (
     <View style={styles.container} >
@@ -28,11 +33,14 @@ export default function Index() {
       <View style={styles.groupContainer}>
         
         {/* Render the GroupItem list */}
+        
         {groupItem.map((item, index) => {
           return (
-            <Group key={index} title={item} />
+            <Group key={index} title={item} onDelete={()=>handleDeleteGroup(index)} />
           );
         })}
+
+      </View>
 
         {/* write a group or add another group */}
         <KeyboardAvoidingView
@@ -54,7 +62,7 @@ export default function Index() {
 
         </KeyboardAvoidingView>
 
-      </View>
+      
 
     </View>
   );
@@ -68,6 +76,7 @@ const styles = StyleSheet.create({
   groupContainer: {
     flex: 1,
     margin: 20,
+    // backgroundColor:"yellow",
   },
   writeGroupWrapper: {
     position: 'absolute',
