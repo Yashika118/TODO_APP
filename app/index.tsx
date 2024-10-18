@@ -3,33 +3,56 @@ import { StyleSheet, Text, View, KeyboardAvoidingView, TextInput, Platform, Touc
 import HomePageHeader from '@/components/HomePageHeader';
 import Group from "../components/Group";
 import { Keyboard } from 'react-native';
+import { Linking } from "react-native";
+import { Redirect, useUnstableGlobalHref } from 'expo-router';
+import { useRouter } from 'expo-router';
+
+import { LogBox } from 'react-native';
+
+
+LogBox.ignoreAllLogs(true);
+const router = useRouter();
+
 
 export default function Index() {
 
   const [group, setGroup] = useState<string>('');
-  const [groupItem, setGroupItem] = useState<string[]>([]);
+  const [groupItems, setGroupItems] = useState<{ name: string, todos: string[] }[]>([]);
 
   const handleAddGroup = () => {
     Keyboard.dismiss();
-    
     if (group) {
-      setGroupItem([...groupItem, group]);
-      setGroup(''); // Reset Group to empty string after adding
+      setGroupItems([...groupItems, { name: group, todos: [] }]); // Add new group with an empty todos array
+      setGroup(''); // Clear input field
     }
-    console.log(groupItem);
   };
 
+  // Delete a group
   const handleDeleteGroup = (index: number) => {
-    const updatedGroups = [...groupItem];
-    updatedGroups.splice(index, 1); // Remove the group at the specified index
-    setGroupItem(updatedGroups); // Update the state with the new array
+    const updatedGroups = [...groupItems];
+    updatedGroups.splice(index, 1); // Remove group from the list
+    setGroupItems(updatedGroups); // Update state
   };
 
-  const handleUpdateGroup = (index:number,newName:string)=>{
-    const updateGroups=[...groupItem];
-    updateGroups[index]=newName;
-    setGroupItem(updateGroups);    
-  }
+  // Update the group name
+  const handleUpdateGroup = (index: number, newName: string) => {
+    const updatedGroups = [...groupItems];
+    updatedGroups[index].name = newName; // Update group name
+    setGroupItems(updatedGroups); // Update state
+  };
+
+  const handleTodoPage = (index: number) => {
+    const selectedGroup = groupItems[index];
+
+    router.push({
+      pathname: '/TodoList',
+      params: {
+        groupIndex: index,
+        groupName: selectedGroup.name,
+        todos: JSON.stringify(selectedGroup.todos) // Convert the todos array to a string
+      }
+    });
+  };
 
   return (
     <View style={styles.container} >
@@ -40,11 +63,19 @@ export default function Index() {
         
         {/* Render the GroupItem list */}
         
-        {groupItem.map((item, index) => {
-          return (
-            <Group key={index} title={item} onDelete={()=>handleDeleteGroup(index)} onEdit={(newName)=> handleUpdateGroup(index,newName)} />
-          );
-        })}
+        {groupItems.map((item, index) => (
+          <TouchableOpacity
+            key={index}
+            // onPress={() => navigation.navigate('GroupTodoScreen', { groupIndex: index, todos: item.todos, groupName: item.name })} // Pass group index and todos to GroupTodoScreen
+            onPress={() => {handleTodoPage(index)}}
+          >
+            <Group
+              title={item.name}
+              onDelete={() => handleDeleteGroup(index)}
+              onEdit={(newName) => handleUpdateGroup(index, newName)}
+            />
+          </TouchableOpacity>
+        ))}
 
       </View>
 

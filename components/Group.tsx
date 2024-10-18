@@ -58,7 +58,7 @@ export default function Group({ title, onDelete, onEdit }: Props) {
           <MaterialIcons name="edit" size={25} color="#25292e" />
         </TouchableOpacity>
 
-        {/* Delete button with confirmation */}
+        {/* Delete button */}
         <TouchableOpacity onPress={confirmDelete}>
           <MaterialIcons name="delete" size={25} color="#25292e" />
         </TouchableOpacity>
