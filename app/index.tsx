@@ -1,40 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, KeyboardAvoidingView, TextInput, Platform, TouchableOpacity } from 'react-native';
 import HomePageHeader from '@/components/HomePageHeader';
 import Group from "../components/Group";
 import { Keyboard } from 'react-native';
-import { Linking } from "react-native";
-import { Redirect, useUnstableGlobalHref } from 'expo-router';
 import { useRouter } from 'expo-router';
-
-import { LogBox } from 'react-native';
-
-
-LogBox.ignoreAllLogs(true);
-const router = useRouter();
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Index() {
-
   const [group, setGroup] = useState<string>('');
   const [groupItems, setGroupItems] = useState<{ name: string, todos: string[] }[]>([]);
+  const router = useRouter();
+
+  // Load groupItems from AsyncStorage on component mount
+  useEffect(() => {
+    const loadGroupItems = async () => {
+      const storedGroups = await AsyncStorage.getItem('groupItems');
+      if (storedGroups) {
+        setGroupItems(JSON.parse(storedGroups));
+      }
+    };
+    loadGroupItems();
+  }, []);
+
+  // Save groupItems to AsyncStorage whenever it changes
+  useEffect(() => {
+    AsyncStorage.setItem('groupItems', JSON.stringify(groupItems));
+  }, [groupItems]);
 
   const handleAddGroup = () => {
-    Keyboard.dismiss();
-    if (group) {
-      setGroupItems([...groupItems, { name: group, todos: [] }]); // Add new group with an empty todos array
-      setGroup(''); // Clear input field
+    if (group.trim()) {
+      // Preserve existing groups and add a new group
+      const updatedGroups = [...groupItems, { name: group, todos: [] }];
+      setGroupItems(updatedGroups); // Update state with new group
+      setGroup(''); // Clear input
     }
   };
 
-  // Delete a group
   const handleDeleteGroup = (index: number) => {
     const updatedGroups = [...groupItems];
-    updatedGroups.splice(index, 1); // Remove group from the list
+    updatedGroups.splice(index, 1); // Remove the selected group
     setGroupItems(updatedGroups); // Update state
   };
 
-  // Update the group name
   const handleUpdateGroup = (index: number, newName: string) => {
     const updatedGroups = [...groupItems];
     updatedGroups[index].name = newName; // Update group name
@@ -42,33 +49,22 @@ export default function Index() {
   };
 
   const handleTodoPage = (index: number) => {
-    const selectedGroup = groupItems[index];
-
     router.push({
       pathname: '/TodoList',
       params: {
-        groupIndex: index,
-        groupName: selectedGroup.name,
-        todos: JSON.stringify(selectedGroup.todos) // Convert the todos array to a string
-      }
+        groupIndex: index.toString(),
+        groupName: groupItems[index].name,
+      },
     });
   };
 
   return (
-    <View style={styles.container} >
-      
+    <View style={styles.container}>
       <HomePageHeader />
 
       <View style={styles.groupContainer}>
-        
-        {/* Render the GroupItem list */}
-        
         {groupItems.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            // onPress={() => navigation.navigate('GroupTodoScreen', { groupIndex: index, todos: item.todos, groupName: item.name })} // Pass group index and todos to GroupTodoScreen
-            onPress={() => {handleTodoPage(index)}}
-          >
+          <TouchableOpacity key={index} onPress={() => handleTodoPage(index)}>
             <Group
               title={item.name}
               onDelete={() => handleDeleteGroup(index)}
@@ -76,31 +72,21 @@ export default function Index() {
             />
           </TouchableOpacity>
         ))}
-
       </View>
 
-        {/* write a group or add another group */}
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={styles.writeGroupWrapper}
-        >
-          <TextInput 
-            style={styles.input} 
-            placeholder={'Write a Group'} 
-            value={group} 
-            onChangeText={text => setGroup(text)} 
-          />
-
-          <TouchableOpacity onPress={handleAddGroup}>
-            <View style={styles.addWrapper}>
-              <Text style={styles.addText}>+</Text>
-            </View>
-          </TouchableOpacity>
-
-        </KeyboardAvoidingView>
-
-      
-
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.writeGroupWrapper}>
+        <TextInput
+          style={styles.input}
+          placeholder="Write a Group"
+          value={group}
+          onChangeText={setGroup}
+        />
+        <TouchableOpacity onPress={handleAddGroup}>
+          <View style={styles.addWrapper}>
+            <Text style={styles.addText}>+</Text>
+          </View>
+        </TouchableOpacity>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -113,7 +99,6 @@ const styles = StyleSheet.create({
   groupContainer: {
     flex: 1,
     margin: 20,
-    // backgroundColor:"yellow",
   },
   writeGroupWrapper: {
     position: 'absolute',
@@ -121,7 +106,7 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-around',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   input: {
     paddingVertical: 15,
@@ -142,5 +127,7 @@ const styles = StyleSheet.create({
     borderColor: '#C0C0C0',
     borderWidth: 1,
   },
-  addText: {},
+  addText: {
+    fontSize: 24,
+  },
 });

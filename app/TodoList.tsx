@@ -1,37 +1,57 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router'; // Use to retrieve the params
+import { useLocalSearchParams } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function TodoList() {
-  // Retrieve parameters passed from index.tsx
-  const { groupIndex, groupName, todos } = useLocalSearchParams();
+  const { groupIndex, groupName } = useLocalSearchParams();
+  const groupIdx = parseInt(groupIndex as string, 10);
 
-  // Check if `todos` is a string (then parse it), or an array (use it directly)
-  const parsedTodos = Array.isArray(todos) ? todos : JSON.parse(todos || '[]');
+  const [groupItems, setGroupItems] = useState<{ name: string, todos: string[] }[]>([]);
+  const [todoItem, setTodoItem] = useState<string>('');
+  const [todoList, setTodoList] = useState<string[]>([]);
 
-  const [todoItem, setTodoItem] = useState<string>(''); // For the input of new todos
-  const [todoList, setTodoList] = useState<string[]>(parsedTodos); // Parse todos passed as a string or fallback to an empty array
+  // Load groupItems and set todoList from AsyncStorage on component mount
+  useEffect(() => {
+    const loadGroupItems = async () => {
+      const storedGroups = await AsyncStorage.getItem('groupItems');
+      if (storedGroups) {
+        const parsedGroups = JSON.parse(storedGroups);
+        setGroupItems(parsedGroups);
+        setTodoList(parsedGroups[groupIdx].todos || []); // Load current group's todos
+      }
+    };
+    loadGroupItems();
+  }, [groupIdx]);
 
-  // Add a new TODO item to the list
+  // Save changes to AsyncStorage
+  const saveChanges = async (updatedTodos: string[]) => {
+    const updatedGroups = [...groupItems];
+    updatedGroups[groupIdx].todos = updatedTodos; // Update the current group's todos
+    setGroupItems(updatedGroups);
+    await AsyncStorage.setItem('groupItems', JSON.stringify(updatedGroups));
+  };
+
   const handleAddTodo = () => {
-    if (todoItem.trim()) { // Check for non-empty input
-      setTodoList([...todoList, todoItem]);
-      setTodoItem(''); // Clear the input field after adding
+    if (todoItem.trim()) {
+      const updatedTodos = [...todoList, todoItem];
+      setTodoList(updatedTodos); // Update local state
+      saveChanges(updatedTodos); // Update global state and AsyncStorage
+      setTodoItem('');
     }
   };
 
-  // Delete a TODO item from the list
   const handleDeleteTodo = (index: number) => {
     const updatedTodos = [...todoList];
-    updatedTodos.splice(index, 1); // Remove the todo at the specified index
-    setTodoList(updatedTodos); // Update the state with the new array
+    updatedTodos.splice(index, 1); // Remove the selected todo
+    setTodoList(updatedTodos); // Update local state
+    saveChanges(updatedTodos); // Update global state and AsyncStorage
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>{groupName} Todos</Text>
 
-      {/* Display the list of todos */}
       <FlatList
         data={todoList}
         renderItem={({ item, index }) => (
@@ -45,16 +65,12 @@ export default function TodoList() {
         keyExtractor={(item, index) => index.toString()}
       />
 
-      {/* Input field and button to add new todos */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.writeTodoWrapper}
-      >
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.writeTodoWrapper}>
         <TextInput
           style={styles.input}
           placeholder="Write a Todo"
           value={todoItem}
-          onChangeText={setTodoItem} // Update the state on input change
+          onChangeText={setTodoItem}
         />
         <TouchableOpacity onPress={handleAddTodo}>
           <View style={styles.addWrapper}>
