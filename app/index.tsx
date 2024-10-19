@@ -7,16 +7,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import uuid from 'react-native-uuid';
 
 export default function Index() {
+  // State to hold the input for the group name
   const [group, setGroup] = useState<string>('');
+  
+  // State to manage the list of groups, where each group has an ID, name, and todos
   const [groupItems, setGroupItems] = useState<{ id: string, name: string, todos: string[] }[]>([]);
+  
+  // Router for navigation between screens
   const router = useRouter();
 
-  // Load groupItems from AsyncStorage on component mount
+  // useEffect to load groups from AsyncStorage when the component mounts
   useEffect(() => {
     const loadGroupItems = async () => {
       try {
+        // Retrieve stored groups from AsyncStorage
         const storedGroups = await AsyncStorage.getItem('groupItems');
         if (storedGroups) {
+          // If groups are found, set the state with the parsed data
           setGroupItems(JSON.parse(storedGroups));
         }
       } catch (error) {
@@ -26,10 +33,11 @@ export default function Index() {
     loadGroupItems();
   }, []);
 
-  // Save groupItems to AsyncStorage whenever it changes
+  // useEffect to save groupItems to AsyncStorage whenever the groupItems state changes
   useEffect(() => {
     const saveGroupItems = async () => {
       try {
+        // Store updated groups in AsyncStorage
         await AsyncStorage.setItem('groupItems', JSON.stringify(groupItems));
       } catch (error) {
         console.error("Failed to save group items:", error);
@@ -38,22 +46,23 @@ export default function Index() {
     saveGroupItems();
   }, [groupItems]);
 
+  // Handle adding a new group
   const handleAddGroup = async () => {
     if (group.trim()) {
       try {
-        // Load existing groups from AsyncStorage to ensure merging
+        // Retrieve existing groups from AsyncStorage to ensure the new group is merged correctly
         const storedGroups = await AsyncStorage.getItem('groupItems');
         const existingGroups = storedGroups ? JSON.parse(storedGroups) : [];
 
-        // Create a new group with a unique ID
+        // Create a new group object with a unique ID and empty todos
         const newGroup = { id: uuid.v4() as string, name: group, todos: [] };
 
-        // Update both state and AsyncStorage with the new group merged with existing groups
+        // Update state and AsyncStorage with the new group added to the list
         const updatedGroups = [...existingGroups, newGroup];
         setGroupItems(updatedGroups);
         await AsyncStorage.setItem('groupItems', JSON.stringify(updatedGroups));
 
-        // Clear input
+        // Clear the input field
         setGroup('');
       } catch (error) {
         console.error("Failed to add new group:", error);
@@ -63,13 +72,17 @@ export default function Index() {
     }
   };
 
+  // Handle deleting a group
   const handleDeleteGroup = (id: string) => {
+    // Filter out the group with the specified ID and update state
     const updatedGroups = groupItems.filter(group => group.id !== id);
     setGroupItems(updatedGroups);
   };
 
+  // Handle updating a group's name
   const handleUpdateGroup = (index: number, newName: string) => {
     if (newName.trim()) {
+      // Create a copy of groupItems and update the group name at the specified index
       const updatedGroups = [...groupItems];
       updatedGroups[index].name = newName;
       setGroupItems(updatedGroups);
@@ -78,6 +91,7 @@ export default function Index() {
     }
   };
 
+  // Navigate to the TodoList page for the specified group
   const handleTodoPage = (groupId: string) => {
     router.push({
       pathname: '/TodoList',
@@ -86,11 +100,13 @@ export default function Index() {
   };
 
   return (
+    // Dismiss the keyboard when the user taps outside of the input field
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <View style={styles.container}>
+        {/* Render the header of the home page */}
         <HomePageHeader />
 
-        {/* Use FlatList to render the group list and make it scrollable */}
+        {/* Use FlatList to make it scrollable */}
         <FlatList
           data={groupItems}
           renderItem={({ item }) => (
@@ -107,6 +123,7 @@ export default function Index() {
           contentContainerStyle={styles.listContainer}
         />
 
+        {/* Input field for adding a new group */}
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.writeGroupWrapper}>
           <TextInput
             style={styles.input}
@@ -131,14 +148,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#c9e6e4',
   },
   listContainer: {
-    paddingBottom: 120,  // Add padding at the bottom to prevent overlap
+    paddingBottom: 120,  
   },
   writeGroupWrapper: {
     position: 'absolute',
     bottom: 60,
     width: '100%',
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   input: {
@@ -149,12 +166,14 @@ const styles = StyleSheet.create({
     borderColor: '#C0C0C0',
     borderWidth: 1,
     width: 250,
+    fontSize: 16,
   },
   addWrapper: {
+    marginLeft: 10,
     width: 60,
     height: 60,
     backgroundColor: '#FFF',
-    borderRadius: 60,
+    borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
     borderColor: '#C0C0C0',
