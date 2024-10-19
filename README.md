@@ -1,50 +1,33 @@
-# Welcome to your Expo app 👋
+## Introduction
+This is a simple TODO application built with React Native, designed to help users organize tasks within different groups. Each task includes a title, description, and a completion checkmark. Users can create, edit, and delete groups and tasks, making it an efficient task management tool.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Features
+- **Group Management:** 
+  - Users can create, update, and delete groups.
+- **Task Management within Groups:** 
+  - Users can create, update, and delete tasks within a group.
+  - Each task includes a title, description, and completion status.
+- **Persistent Storage:** 
+  - The application uses AsyncStorage for local data persistence.
+- **User-friendly Interface:** 
+  - The app features an intuitive UI with easy navigation across different screens.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Design Choices
+- **Component-based Structure:** 
+  - The app follows a component-based design to separate concerns and improve code reusability.
+- **FlatList for Efficient Rendering:** 
+  - `FlatList` is used for rendering groups and tasks to handle large lists efficiently.
+- **Expo Router for Navigation:** 
+  - The navigation between screens is managed using Expo Router, providing smooth transitions and managing screen stacks.
+- **AsyncStorage for Persistence:** 
+  - Local storage is achieved through AsyncStorage, allowing data to be saved across app sessions.
+- **Separation of Screens:**
+  - The app separates major functionalities into different screens:
+    - `TodoList.tsx`: Lists tasks within a selected group.
+    
+## Technical Stack
+- **React Native:** The framework used for mobile app development.
+- **Expo:** For easy development, building, and testing.
+- **TypeScript:** For type safety and better code management.
+- **AsyncStorage:** For data persistence within the app.
+- **React Navigation (via Expo Router):** For seamless navigation between screens.
