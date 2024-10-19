@@ -44,7 +44,7 @@ export default function Group({ title, todoCount, onDelete, onEdit }: Props) {
         ) : (
           <View style={styles.textContainer}>
             <Text style={styles.taskTitle}>{title}</Text>
-            <Text style={styles.todoCountText}>Todos: {todoCount}</Text>
+            {/* <Text style={styles.todoCountText}>Todos: {todoCount}</Text> */}
           </View>
         )}
 
