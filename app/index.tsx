@@ -99,6 +99,7 @@ export default function Index() {
     });
   };
 
+  
   return (
     // Dismiss the keyboard when the user taps outside of the input field
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -107,22 +108,24 @@ export default function Index() {
         <HomePageHeader />
 
         {/* Use FlatList to make it scrollable */}
-        <FlatList
-          data={groupItems}
-          renderItem={({ item }) => (
-            <TouchableOpacity key={item.id} onPress={() => handleTodoPage(item.id)}>
-              <Group
-                title={item.name}
-                todoCount={item.todos.length}
-                onDelete={() => handleDeleteGroup(item.id)}
-                onEdit={(newName) => handleUpdateGroup(groupItems.findIndex(g => g.id === item.id), newName)}
-              />
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContainer}
-        />
-
+        <View style={styles.listContainer}>
+          <FlatList
+            data={groupItems}
+            renderItem={({ item }) => (
+              <TouchableOpacity onPress={() => handleTodoPage(item.id)}>
+                <Group
+                  title={item.name}
+                  todoCount={item.todos.length}
+                  onDelete={() => handleDeleteGroup(item.id)}
+                  onEdit={(newName) => handleUpdateGroup(groupItems.findIndex(g => g.id === item.id), newName)}
+                />
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            showsVerticalScrollIndicator={false}
+          />
+        </View>
         {/* Input field for adding a new group */}
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.writeGroupWrapper}>
           <TextInput
@@ -148,7 +151,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#c9e6e4',
   },
   listContainer: {
-    paddingBottom: 120,  
+    flex:1,
+    // paddingBottom: 120,  
+    marginBottom:175,
   },
   writeGroupWrapper: {
     position: 'absolute',

@@ -1,113 +1,119 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView, Alert } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import uuid from 'react-native-uuid';
 
 export default function TodoList() {
-  const { groupIndex } = useLocalSearchParams();
-  const groupId = groupIndex as string;
+  const [todo, setTodo] = useState<string>('');
+  const [todos, setTodos] = useState<{ id: string, text: string }[]>([]);
+  const [groupName, setGroupName] = useState<string>('');
+  const { groupIndex } = useLocalSearchParams<{ groupIndex: string }>();
+  const router = useRouter();
 
-  const [groupItems, setGroupItems] = useState<{ id: string, name: string, todos: string[] }[]>([]);
-  
-  const [todoItem, setTodoItem] = useState<string>('');
-  
-  const [todoList, setTodoList] = useState<string[]>([]);
-
-  // Load group items from AsyncStorage when the component mounts or when groupId changes
+  // Load todos from AsyncStorage when the component mounts
   useEffect(() => {
-    const loadGroupItems = async () => {
+    const loadTodos = async () => {
       try {
-        // Fetch stored groups from AsyncStorage
         const storedGroups = await AsyncStorage.getItem('groupItems');
-        if (storedGroups) {
-          const parsedGroups = JSON.parse(storedGroups);
-          setGroupItems(parsedGroups);
+        const groups = storedGroups ? JSON.parse(storedGroups) : [];
 
-          // Find the current group by its ID and set the todo list
-          const currentGroup = parsedGroups.find((group: any) => group.id === groupId);
-          setTodoList(currentGroup?.todos || []);
+        const currentGroup = groups.find((group: { id: string }) => group.id === groupIndex);
+        if (currentGroup) {
+          setGroupName(currentGroup.name);
+          setTodos(currentGroup.todos.map((todo: string) => ({ id: uuid.v4() as string, text: todo })));
         }
       } catch (error) {
-        console.error("Failed to load group items:", error);
+        console.error("Failed to load todos:", error);
       }
     };
-    loadGroupItems();
-  }, [groupId]);
+    loadTodos();
+  }, [groupIndex]);
 
-  // Save updated todo list to AsyncStorage and update the state
-  const saveChanges = async (updatedTodos: string[]) => {
-    // Map through groups to update the todos for the current group
-    const updatedGroups = groupItems.map(group =>
-      group.id === groupId ? { ...group, todos: updatedTodos } : group
-    );
-    
-    // Update the groupItems state with modified todos
-    setGroupItems(updatedGroups);
+  // Save todos to AsyncStorage whenever the todos state changes
+  useEffect(() => {
+    const saveTodos = async () => {
+      try {
+        const storedGroups = await AsyncStorage.getItem('groupItems');
+        const groups = storedGroups ? JSON.parse(storedGroups) : [];
 
-    // Store the updated group items in AsyncStorage
-    await AsyncStorage.setItem('groupItems', JSON.stringify(updatedGroups));
-  };
+        const updatedGroups = groups.map((group: { id: string, name: string, todos: string[] }) => {
+          if (group.id === groupIndex) {
+            return { ...group, todos: todos.map(todo => todo.text) };
+          }
+          return group;
+        });
 
-  // Handle adding a new todo item
+        await AsyncStorage.setItem('groupItems', JSON.stringify(updatedGroups));
+      } catch (error) {
+        console.error("Failed to save todos:", error);
+      }
+    };
+    saveTodos();
+  }, [todos, groupIndex]);
+
+  // Handle adding a new todo
   const handleAddTodo = () => {
-    if (todoItem.trim()) {
-      // Add the new todo to the list and update the state
-      const updatedTodos = [...todoList, todoItem];
-      setTodoList(updatedTodos);
-      saveChanges(updatedTodos);
-      
-      // Clear the input field after adding the todo
-      setTodoItem('');
+    if (todo.trim()) {
+      const newTodo = { id: uuid.v4() as string, text: todo };
+      setTodos(prevTodos => [...prevTodos, newTodo]);
+      setTodo('');
     } else {
       Alert.alert("Invalid Input", "Todo cannot be empty.");
     }
   };
 
-  // Handle deleting a todo item by index
-  const handleDeleteTodo = (index: number) => {
-    // Create a copy of the todo list and remove the specified item
-    const updatedTodos = [...todoList];
-    updatedTodos.splice(index, 1);
-    
-    // Update the state and save the modified list
-    setTodoList(updatedTodos);
-    saveChanges(updatedTodos);
+  // Handle deleting a todo
+  const handleDeleteTodo = (id: string) => {
+    setTodos(prevTodos => prevTodos.filter(todo => todo.id !== id));
+  };
+
+  // Handle updating a todo
+  const handleUpdateTodo = (id: string, newText: string) => {
+    if (newText.trim()) {
+      setTodos(prevTodos => prevTodos.map(todo => (todo.id === id ? { ...todo, text: newText } : todo)));
+    } else {
+      Alert.alert("Invalid Input", "Todo cannot be empty.");
+    }
   };
 
   return (
     <View style={styles.container}>
-      {/* Header to display the title of the Todo list */}
-      <Text style={styles.header}>Todos</Text>
-
-      {/* FlatList to render the list of todos and make it scrollable */}
+      <Text style={styles.header}>{groupName} - TODOs</Text>
+      
       <FlatList
-        data={todoList}
-        renderItem={({ item, index }) => (
+        data={todos}
+        renderItem={({ item }) => (
           <View style={styles.todoItem}>
-            <Text style={styles.todoText}>{item}</Text>
-            <TouchableOpacity onPress={() => handleDeleteTodo(index)}>
-              <Text style={styles.deleteText}>Delete</Text>
+            <TextInput
+              style={styles.todoText}
+              value={item.text}
+              onChangeText={(newText) => handleUpdateTodo(item.id, newText)}
+            />
+            <TouchableOpacity onPress={() => handleDeleteTodo(item.id)} style={styles.deleteButton}>
+              <Text style={styles.deleteButtonText}>X</Text>
             </TouchableOpacity>
           </View>
         )}
-        keyExtractor={(item, index) => index.toString()}
-        contentContainerStyle={{ paddingBottom: 120 }}  // Add padding to prevent overlap with input
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
       />
 
-      {/* Input field for adding a new todo item */}
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.writeTodoWrapper}>
+      <View>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.addTodoWrapper}>
         <TextInput
           style={styles.input}
-          placeholder="Write a Todo"
-          value={todoItem}
-          onChangeText={setTodoItem}
+          placeholder="Add a TODO"
+          value={todo}
+          onChangeText={setTodo}
         />
-        <TouchableOpacity onPress={handleAddTodo} disabled={!todoItem.trim()}>
-          <View style={[styles.addWrapper, !todoItem.trim() && { backgroundColor: '#E0E0E0' }]}>
-            <Text style={styles.addText}>+</Text>
+        <TouchableOpacity onPress={handleAddTodo} disabled={!todo.trim()}>
+          <View style={[styles.addButton, !todo.trim() && { backgroundColor: '#E0E0E0' }]}>
+            <Text style={styles.addButtonText}>+</Text>
           </View>
         </TouchableOpacity>
       </KeyboardAvoidingView>
+      </View>
     </View>
   );
 }
@@ -116,32 +122,50 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    backgroundColor: '#c9e6e4',
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginVertical: 20,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  listContainer: {
+    flex:1,
+    paddingBottom: 100,
+    marginBottom:140,
   },
   todoItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
+    alignItems: 'center',
+    marginBottom: 10,
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 8,
+    borderColor: '#ddd',
+    borderWidth: 1,
   },
   todoText: {
-    fontSize: 18,
+    flex: 1,
+    fontSize: 16,
   },
-  deleteText: {
-    color: 'red',
+  deleteButton: {
+    marginLeft: 10,
+    padding: 10,
+    backgroundColor: '#FF6347',
+    borderRadius: 5,
   },
-  writeTodoWrapper: {
+  deleteButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  addTodoWrapper: {
     position: 'absolute',
-    bottom: 60,
-    width: '100%',
+    bottom: 30,
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
+    justifyContent: 'center',
   },
   input: {
     paddingVertical: 15,
@@ -153,7 +177,7 @@ const styles = StyleSheet.create({
     width: 250,
     fontSize: 16,
   },
-  addWrapper: {
+  addButton: {
     marginLeft: 10,
     width: 60,
     height: 60,
@@ -164,7 +188,7 @@ const styles = StyleSheet.create({
     borderColor: '#C0C0C0',
     borderWidth: 1,
   },
-  addText: {
+  addButtonText: {
     fontSize: 24,
   },
 });
