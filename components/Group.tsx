@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
+
+
 type Props = {
     title: string;
     onDelete: () => void;

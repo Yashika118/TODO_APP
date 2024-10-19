@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, KeyboardAvoidingView, TextInput, Platform, TouchableOpacity } from 'react-native';
+import { StyleSheet, Text, View, KeyboardAvoidingView, TextInput, Platform, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import HomePageHeader from '@/components/HomePageHeader';
 import Group from "../components/Group";
-import { Keyboard } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import uuid from 'react-native-uuid';
 
 export default function Index() {
   const [group, setGroup] = useState<string>('');
-  const [groupItems, setGroupItems] = useState<{ name: string, todos: string[] }[]>([]);
+  const [groupItems, setGroupItems] = useState<{ id: string, name: string, todos: string[] }[]>([]);
   const router = useRouter();
 
   // Load groupItems from AsyncStorage on component mount
   useEffect(() => {
     const loadGroupItems = async () => {
-      const storedGroups = await AsyncStorage.getItem('groupItems');
-      if (storedGroups) {
-        setGroupItems(JSON.parse(storedGroups));
+      try {
+        const storedGroups = await AsyncStorage.getItem('groupItems');
+        if (storedGroups) {
+          setGroupItems(JSON.parse(storedGroups));
+        }
+      } catch (error) {
+        console.error("Failed to load group items:", error);
       }
     };
     loadGroupItems();
@@ -24,70 +28,95 @@ export default function Index() {
 
   // Save groupItems to AsyncStorage whenever it changes
   useEffect(() => {
-    AsyncStorage.setItem('groupItems', JSON.stringify(groupItems));
+    const saveGroupItems = async () => {
+      try {
+        await AsyncStorage.setItem('groupItems', JSON.stringify(groupItems));
+      } catch (error) {
+        console.error("Failed to save group items:", error);
+      }
+    };
+    saveGroupItems();
   }, [groupItems]);
 
-  const handleAddGroup = () => {
+  const handleAddGroup = async () => {
     if (group.trim()) {
-      // Preserve existing groups and add a new group
-      const updatedGroups = [...groupItems, { name: group, todos: [] }];
-      setGroupItems(updatedGroups); // Update state with new group
-      setGroup(''); // Clear input
+      try {
+        // Load existing groups from AsyncStorage to ensure merging
+        const storedGroups = await AsyncStorage.getItem('groupItems');
+        const existingGroups = storedGroups ? JSON.parse(storedGroups) : [];
+
+        // Create a new group with a unique ID
+        const newGroup = { id: uuid.v4() as string, name: group, todos: [] };
+
+        // Update both state and AsyncStorage with the new group merged with existing groups
+        const updatedGroups = [...existingGroups, newGroup];
+        setGroupItems(updatedGroups);
+        await AsyncStorage.setItem('groupItems', JSON.stringify(updatedGroups));
+
+        // Clear input
+        setGroup('');
+      } catch (error) {
+        console.error("Failed to add new group:", error);
+      }
+    } else {
+      Alert.alert("Invalid Input", "Group name cannot be empty.");
     }
   };
 
-  const handleDeleteGroup = (index: number) => {
-    const updatedGroups = [...groupItems];
-    updatedGroups.splice(index, 1); // Remove the selected group
-    setGroupItems(updatedGroups); // Update state
+  const handleDeleteGroup = (id: string) => {
+    const updatedGroups = groupItems.filter(group => group.id !== id);
+    setGroupItems(updatedGroups);
   };
 
   const handleUpdateGroup = (index: number, newName: string) => {
-    const updatedGroups = [...groupItems];
-    updatedGroups[index].name = newName; // Update group name
-    setGroupItems(updatedGroups); // Update state
+    if (newName.trim()) {
+      const updatedGroups = [...groupItems];
+      updatedGroups[index].name = newName;
+      setGroupItems(updatedGroups);
+    } else {
+      Alert.alert("Invalid Input", "Group name cannot be empty.");
+    }
   };
 
-  const handleTodoPage = (index: number) => {
+  const handleTodoPage = (groupId: string) => {
     router.push({
       pathname: '/TodoList',
-      params: {
-        groupIndex: index.toString(),
-        groupName: groupItems[index].name,
-      },
+      params: { groupIndex: groupId },
     });
   };
 
   return (
-    <View style={styles.container}>
-      <HomePageHeader />
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <View style={styles.container}>
+        <HomePageHeader />
 
-      <View style={styles.groupContainer}>
-        {groupItems.map((item, index) => (
-          <TouchableOpacity key={index} onPress={() => handleTodoPage(index)}>
-            <Group
-              title={item.name}
-              onDelete={() => handleDeleteGroup(index)}
-              onEdit={(newName) => handleUpdateGroup(index, newName)}
-            />
+        <View style={styles.groupContainer}>
+          {groupItems.map((item) => (
+            <TouchableOpacity key={item.id} onPress={() => handleTodoPage(item.id)}>
+              <Group
+                title={item.name}
+                onDelete={() => handleDeleteGroup(item.id)}
+                onEdit={(newName) => handleUpdateGroup(groupItems.findIndex(g => g.id === item.id), newName)}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.writeGroupWrapper}>
+          <TextInput
+            style={styles.input}
+            placeholder="Write a Group"
+            value={group}
+            onChangeText={setGroup}
+          />
+          <TouchableOpacity onPress={handleAddGroup} disabled={!group.trim()}>
+            <View style={[styles.addWrapper, !group.trim() && { backgroundColor: '#E0E0E0' }]}>
+              <Text style={styles.addText}>+</Text>
+            </View>
           </TouchableOpacity>
-        ))}
+        </KeyboardAvoidingView>
       </View>
-
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.writeGroupWrapper}>
-        <TextInput
-          style={styles.input}
-          placeholder="Write a Group"
-          value={group}
-          onChangeText={setGroup}
-        />
-        <TouchableOpacity onPress={handleAddGroup}>
-          <View style={styles.addWrapper}>
-            <Text style={styles.addText}>+</Text>
-          </View>
-        </TouchableOpacity>
-      </KeyboardAvoidingView>
-    </View>
+    </TouchableWithoutFeedback>
   );
 }
 

@@ -1,33 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView } from 'react-native';
+import { View, Text, FlatList, TextInput, TouchableOpacity, StyleSheet, Platform, KeyboardAvoidingView, Alert } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function TodoList() {
-  const { groupIndex, groupName } = useLocalSearchParams();
-  const groupIdx = parseInt(groupIndex as string, 10);
+  const { groupIndex } = useLocalSearchParams();
+  const groupId = groupIndex as string;
 
-  const [groupItems, setGroupItems] = useState<{ name: string, todos: string[] }[]>([]);
+  const [groupItems, setGroupItems] = useState<{ id: string, name: string, todos: string[] }[]>([]);
   const [todoItem, setTodoItem] = useState<string>('');
   const [todoList, setTodoList] = useState<string[]>([]);
 
-  // Load groupItems and set todoList from AsyncStorage on component mount
   useEffect(() => {
     const loadGroupItems = async () => {
-      const storedGroups = await AsyncStorage.getItem('groupItems');
-      if (storedGroups) {
-        const parsedGroups = JSON.parse(storedGroups);
-        setGroupItems(parsedGroups);
-        setTodoList(parsedGroups[groupIdx].todos || []); // Load current group's todos
+      try {
+        const storedGroups = await AsyncStorage.getItem('groupItems');
+        if (storedGroups) {
+          const parsedGroups = JSON.parse(storedGroups);
+          setGroupItems(parsedGroups);
+          const currentGroup = parsedGroups.find((group: any) => group.id === groupId);
+          setTodoList(currentGroup?.todos || []);
+        }
+      } catch (error) {
+        console.error("Failed to load group items:", error);
       }
     };
     loadGroupItems();
-  }, [groupIdx]);
+  }, [groupId]);
 
-  // Save changes to AsyncStorage
   const saveChanges = async (updatedTodos: string[]) => {
-    const updatedGroups = [...groupItems];
-    updatedGroups[groupIdx].todos = updatedTodos; // Update the current group's todos
+    const updatedGroups = groupItems.map(group =>
+      group.id === groupId ? { ...group, todos: updatedTodos } : group
+    );
     setGroupItems(updatedGroups);
     await AsyncStorage.setItem('groupItems', JSON.stringify(updatedGroups));
   };
@@ -35,27 +39,29 @@ export default function TodoList() {
   const handleAddTodo = () => {
     if (todoItem.trim()) {
       const updatedTodos = [...todoList, todoItem];
-      setTodoList(updatedTodos); // Update local state
-      saveChanges(updatedTodos); // Update global state and AsyncStorage
+      setTodoList(updatedTodos);
+      saveChanges(updatedTodos);
       setTodoItem('');
+    } else {
+      Alert.alert("Invalid Input", "Todo cannot be empty.");
     }
   };
 
   const handleDeleteTodo = (index: number) => {
     const updatedTodos = [...todoList];
-    updatedTodos.splice(index, 1); // Remove the selected todo
-    setTodoList(updatedTodos); // Update local state
-    saveChanges(updatedTodos); // Update global state and AsyncStorage
+    updatedTodos.splice(index, 1);
+    setTodoList(updatedTodos);
+    saveChanges(updatedTodos);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>{groupName} Todos</Text>
+      <Text style={styles.header}>Todos</Text>
 
       <FlatList
         data={todoList}
         renderItem={({ item, index }) => (
-          <View key={index} style={styles.todoItem}>
+          <View style={styles.todoItem}>
             <Text style={styles.todoText}>{item}</Text>
             <TouchableOpacity onPress={() => handleDeleteTodo(index)}>
               <Text style={styles.deleteText}>Delete</Text>
@@ -63,6 +69,7 @@ export default function TodoList() {
           </View>
         )}
         keyExtractor={(item, index) => index.toString()}
+        contentContainerStyle={{ paddingBottom: 120 }}
       />
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.writeTodoWrapper}>
@@ -72,8 +79,8 @@ export default function TodoList() {
           value={todoItem}
           onChangeText={setTodoItem}
         />
-        <TouchableOpacity onPress={handleAddTodo}>
-          <View style={styles.addWrapper}>
+        <TouchableOpacity onPress={handleAddTodo} disabled={!todoItem.trim()}>
+          <View style={[styles.addWrapper, !todoItem.trim() && { backgroundColor: '#E0E0E0' }]}>
             <Text style={styles.addText}>+</Text>
           </View>
         </TouchableOpacity>
