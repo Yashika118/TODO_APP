@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, KeyboardAvoidingView, TextInput, Platform, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard } from 'react-native';
+import { StyleSheet, Text, View, KeyboardAvoidingView, TextInput, Platform, TouchableOpacity, Alert, TouchableWithoutFeedback, Keyboard, FlatList } from 'react-native';
 import HomePageHeader from '@/components/HomePageHeader';
 import Group from "../components/Group";
 import { useRouter } from 'expo-router';
@@ -90,17 +90,22 @@ export default function Index() {
       <View style={styles.container}>
         <HomePageHeader />
 
-        <View style={styles.groupContainer}>
-          {groupItems.map((item) => (
+        {/* Use FlatList to render the group list and make it scrollable */}
+        <FlatList
+          data={groupItems}
+          renderItem={({ item }) => (
             <TouchableOpacity key={item.id} onPress={() => handleTodoPage(item.id)}>
               <Group
                 title={item.name}
+                todoCount={item.todos.length}
                 onDelete={() => handleDeleteGroup(item.id)}
                 onEdit={(newName) => handleUpdateGroup(groupItems.findIndex(g => g.id === item.id), newName)}
               />
             </TouchableOpacity>
-          ))}
-        </View>
+          )}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContainer}
+        />
 
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.writeGroupWrapper}>
           <TextInput
@@ -125,9 +130,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#c9e6e4',
   },
-  groupContainer: {
-    flex: 1,
-    margin: 20,
+  listContainer: {
+    paddingBottom: 120,  // Add padding at the bottom to prevent overlap
   },
   writeGroupWrapper: {
     position: 'absolute',
